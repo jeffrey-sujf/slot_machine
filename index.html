@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>PocketPulse</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="style.css">
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary":               "#a73a00",
+                        "primary-container":     "#ff5c00",
+                        "surface-container-low": "#f6f4e8",
+                        "surface-container":     "#f0eee2",
+                        "surface-variant":       "#e5e3d7",
+                        "on-surface":            "#1b1c15",
+                        "on-primary":            "#ffffff",
+                        "tertiary-fixed":        "#69ff88",
+                        "outline-variant":       "#e4beb1",
+                        "secondary":             "#a42e79"
+                    },
+                    borderRadius: { "retro": "12px", "device": "24px" }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="antialiased">
+<main>
+
+    <!-- ═══ HABIT VIEW ═══ -->
+    <section id="view-habit" class="spa-view active">
+        <div class="bg-surface-container-low rounded-device p-6 shadow-xl border border-surface-variant relative mt-8">
+
+            <!-- LCD progress screen -->
+            <div class="mb-6">
+                <div class="bg-surface-variant rounded-retro p-2 shadow-inner border-t-2 border-white/20">
+                    <div class="lcd-screen rounded-lg p-4 h-32 flex flex-col justify-between">
+                        <span class="font-bold uppercase tracking-widest text-[10px] opacity-80">Daily Progress</span>
+                        <div id="habit-chart" class="flex items-end justify-between h-16 gap-1"></div>
+                        <div class="text-right">
+                            <span id="progress-percent" class="text-2xl font-bold tracking-tighter text-tertiary-fixed">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Habit list -->
+            <div class="bg-white/50 rounded-retro p-4 shadow-inner border border-outline-variant">
+                <h2 class="font-bold text-xl mb-4 border-b border-surface-variant pb-2 flex items-center justify-between text-on-surface">
+                    <span>Routine</span>
+                    <span id="remaining-count" class="text-white bg-primary px-2 py-0.5 rounded-full text-[10px]">0 REMAINING</span>
+                </h2>
+
+                <ul id="habit-list" class="space-y-2"></ul>
+
+                <button id="btn-add-habit">
+                    <span class="material-symbols-outlined">add_circle</span>
+                    Add Habit
+                </button>
+
+                <button id="btn-reset-day" class="mt-3 w-full py-2.5 bg-white border-2 border-dashed border-outline-variant rounded-lg text-primary font-bold text-xs uppercase tracking-widest hover:bg-orange-50 transition-all active:scale-95">
+                    <span class="material-symbols-outlined text-sm align-middle">refresh</span>
+                    Reset Day
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ SPIN VIEW ═══ -->
+    <section id="view-spin" class="spa-view">
+        <div class="bg-surface-container-low rounded-[2rem] p-6 shadow-xl border-4 border-surface-variant relative mt-8 flex flex-col gap-6">
+
+            <div class="flex justify-center">
+                <div id="coin-slot-trigger" class="bg-surface-variant px-6 py-2 rounded-full shadow-inner border border-stone-400 cursor-pointer hover:bg-stone-200 transition-all active:scale-95 group">
+                    <span id="coin-slot-label" class="font-bold text-[10px] tracking-widest text-stone-600 group-hover:text-primary">INSERT CREDIT</span>
+                </div>
+            </div>
+
+            <div class="lcd-screen p-4 flex flex-col items-end gap-1">
+                <span id="outcome-display" class="text-[10px] font-bold opacity-80 uppercase tracking-widest text-tertiary-fixed">SYSTEM READY</span>
+                <span id="credit-count" class="text-3xl font-bold tracking-widest text-primary-container drop-shadow-md">0</span>
+            </div>
+
+            <div id="slot-machine-wrap">
+                <div id="machine-container" class="lcd-screen flex justify-between gap-2 relative overflow-hidden p-3">
+                    <div class="payline"></div>
+                    <div class="reel-window flex-1"><div id="reel-1" class="reel-col"></div></div>
+                    <div class="reel-window flex-1"><div id="reel-2" class="reel-col"></div></div>
+                    <div class="reel-window flex-1"><div id="reel-3" class="reel-col"></div></div>
+                </div>
+                <div id="spin-history-panel">
+                    <span class="history-label">History</span>
+                    <div id="spin-history-entries" class="history-entries"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-center py-4">
+                <button id="spin-handle" class="w-24 h-24 rounded-full bg-primary border-4 border-white/30 shadow-2xl flex items-center justify-center transition-all active:scale-90 active:translate-y-2">
+                    <span class="text-white font-bold tracking-tighter">SPIN</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ WALLET VIEW ═══ -->
+    <section id="view-me" class="spa-view">
+
+        <!-- Balance card — tap to open physics wallet -->
+        <div id="wallet-open-trigger" class="lcd-screen p-6 mt-8 shadow-2xl" role="button" tabindex="0" aria-label="Open wallet">
+            <div class="flex flex-col gap-1">
+                <span class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Available Balance</span>
+                <div class="flex items-baseline gap-2">
+                    <span id="total-balance" class="text-4xl font-bold tracking-tighter text-tertiary-fixed">0</span>
+                    <span class="text-xs opacity-50 text-tertiary-fixed">TOKENS</span>
+                </div>
+            </div>
+            <div class="mt-6 border-t border-white/10 pt-4 flex justify-between items-center">
+                <div class="bg-stone-900 px-2 py-1 rounded border border-white/20 text-[10px] font-bold text-tertiary-fixed">
+                    LIFETIME: <span id="stats-lifetime">0</span>
+                </div>
+                <span class="wallet-open-hint">TAP TO OPEN ↗</span>
+            </div>
+        </div>
+
+        <section class="mt-8">
+            <div class="flex items-center justify-between px-2 mb-4">
+                <h2 class="text-xs font-bold uppercase tracking-widest opacity-50">Inventory</h2>
+                <button id="btn-open-wallet" class="wallet-open-btn">
+                    <span class="material-symbols-outlined" style="font-size:14px">open_in_full</span>
+                    Physics View
+                </button>
+            </div>
+            <div id="wallet-container" class="grid grid-cols-3 gap-4"></div>
+        </section>
+
+        <section class="mt-8 bg-surface-container rounded-2xl p-6 border border-surface-variant">
+            <div class="flex justify-between items-end mb-6">
+                <h3 class="font-bold text-lg">Goal Progress</h3>
+                <span id="weekly-progress-text" class="text-[10px] font-bold bg-white px-2 py-0.5 rounded-full shadow-sm">0/20</span>
+            </div>
+            <div class="space-y-6">
+                <div>
+                    <div class="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-2 opacity-60">
+                        <span>Monthly Milestone</span>
+                        <span id="monthly-progress-text">0/100</span>
+                    </div>
+                    <div class="h-3 bg-surface-variant rounded-full overflow-hidden shadow-inner p-0.5">
+                        <div id="monthly-progress-fill" class="h-full bg-secondary rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </section>
+
+</main>
+
+<!-- ═══ PHYSICS WALLET MODAL ═══ -->
+<div id="wallet-modal" class="wallet-modal-overlay" style="display:none;">
+    <div class="wallet-modal-box">
+        <div class="wallet-modal-header">
+            <span class="wallet-modal-title">My Wallet</span>
+            <button id="wallet-modal-close" class="wallet-modal-close" aria-label="Close wallet">✕</button>
+        </div>
+        <div class="wallet-modal-balance-row">
+            <span id="wallet-modal-balance" class="wallet-balance-number">0</span>
+            <span class="wallet-balance-label">TOKENS</span>
+        </div>
+        <canvas id="wallet-physics-canvas"></canvas>
+        <div class="wallet-modal-footer">
+            <span class="wallet-footer-hint">drag &amp; toss the tokens</span>
+            <button id="wallet-jiggle-btn" class="wallet-jiggle-btn">JIGGLE</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLOT CREDIT MODAL ═══ -->
+<div id="coin-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+        <h3 class="font-bold text-center mb-6 text-primary tracking-widest uppercase">Select Credit</h3>
+        <div class="modal-options">
+            <button id="bet-opt-1" class="modal-btn">
+                <div class="font-bold text-primary">LEVEL 1</div>
+                <div class="text-xs opacity-80">1 Any Token &bull; Low Odds</div>
+            </button>
+            <button id="bet-opt-2" class="modal-btn">
+                <div class="font-bold text-primary">LEVEL 2</div>
+                <div class="text-xs opacity-80">2 Matching &bull; Mid Odds</div>
+            </button>
+            <button id="bet-opt-3" class="modal-btn">
+                <div class="font-bold text-primary">LEVEL 3</div>
+                <div class="text-xs opacity-80">3 Matching &bull; HIGH ODDS</div>
+            </button>
+        </div>
+        <button id="btn-modal-cancel" class="w-full mt-4 text-[10px] font-bold opacity-50 uppercase tracking-widest">Cancel</button>
+    </div>
+</div>
+
+<!-- ═══ BOTTOM NAV ═══ -->
+<nav class="bottom-nav">
+    <button class="nav-item active" data-target="view-habit">
+        <span class="material-symbols-outlined">event_repeat</span>
+        <span class="nav-label">Habits</span>
+    </button>
+    <button class="nav-item" data-target="view-spin">
+        <span class="material-symbols-outlined">casino</span>
+        <span class="nav-label">Slots</span>
+    </button>
+    <button class="nav-item" data-target="view-me">
+        <span class="material-symbols-outlined">account_balance_wallet</span>
+        <span class="nav-label">Wallet</span>
+    </button>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

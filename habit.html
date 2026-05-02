@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>PocketPulse - Habits</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="style.css">
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#a73a00",
+                        "primary-container": "#ff5c00",
+                        "surface-container-low": "#f6f4e8",
+                        "surface-variant": "#e5e3d7",
+                        "on-surface": "#1b1c15",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#69ff88",
+                        "outline-variant": "#e4beb1"
+                    },
+                    "borderRadius": {
+                        "retro": "12px",
+                        "device": "24px"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+<main>
+    <!-- Screen -->
+    <div class="bg-surface-container-low rounded-device p-6 shadow-xl border border-surface-variant relative mt-8">
+        <div class="mb-8">
+            <div class="bg-surface-variant rounded-retro p-2 shadow-inner border-t-2 border-white/20">
+                <div class="lcd-screen rounded-lg p-4 h-32 flex flex-col justify-between">
+                    <span class="font-bold uppercase tracking-widest text-[10px] opacity-80">Daily Progress</span>
+                    <div id="habit-chart" class="flex items-end justify-between h-16 gap-1"></div>
+                    <div class="text-right">
+                        <span id="progress-percent" class="text-2xl font-bold tracking-tighter">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-4 mb-6">
+            <div class="bg-white/50 rounded-retro p-4 shadow-inner border border-outline-variant">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="font-bold text-lg">Reward Settings</h2>
+                    <span class="text-[10px] uppercase opacity-60 tracking-[0.24em]">Editable</span>
+                </div>
+                <div id="reward-settings" class="space-y-3"></div>
+            </div>
+            <div class="bg-white/50 rounded-retro p-4 shadow-inner border border-outline-variant">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="font-bold text-lg">Long-Term Goal</h2>
+                    <span class="text-[10px] uppercase opacity-60 tracking-[0.24em]">Progress awards</span>
+                </div>
+                <div id="goal-settings" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <!-- Habits -->
+        <div class="bg-white/50 rounded-retro p-4 shadow-inner border border-outline-variant">
+            <div class="flex items-center justify-between mb-4 border-b border-surface-variant pb-2">
+                <div>
+                    <h2 class="font-bold text-xl">Routine</h2>
+                    <span id="remaining-count" class="text-white bg-primary px-2 py-0.5 rounded-full text-[10px]">0 REMAINING</span>
+                </div>
+                <button id="btn-add-habit" class="px-3 py-2 bg-primary text-white rounded-full text-xs font-bold uppercase tracking-[0.2em] hover:bg-[#8a2a00] transition">+ Add</button>
+            </div>
+            <ul id="habit-list" class="space-y-3"></ul>
+            <details id="past-habits-folder" class="past-habits-panel mt-4">
+                <summary class="past-habits-summary">Past Habits <span id="past-habits-count" class="text-[10px] opacity-70 ml-2"></span></summary>
+                <div id="past-habits-container" class="space-y-2 mt-3"></div>
+            </details>
+            <button id="btn-reset-day" class="mt-4 w-full py-3 bg-white border-2 border-dashed border-outline-variant rounded-lg text-primary font-bold text-xs uppercase tracking-widest hover:bg-orange-50 transition-all active:scale-95">
+                <span class="material-symbols-outlined text-sm align-middle">refresh</span>
+                Reset Day
+            </button>
+        </div>
+    </div>
+</main>
+
+<div id="toast-container" class="toast-container"></div>
+<nav class="bottom-nav">
+    <a href="habit.html" class="nav-item active">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">event_repeat</span>
+        <span class="nav-label">Habits</span>
+    </a>
+    <a href="spin.html" class="nav-item">
+        <span class="material-symbols-outlined">casino</span>
+        <span class="nav-label">Slots</span>
+    </a>
+    <a href="me.html" class="nav-item">
+        <span class="material-symbols-outlined">account_balance_wallet</span>
+        <span class="nav-label">Wallet</span>
+    </a>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>

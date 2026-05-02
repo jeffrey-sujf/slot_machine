@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /d D:/Slot_4.23)",
+      "Bash(node -e ' *)",
+      "Bash(node *)"
+    ]
+  }
+}
