@@ -88,6 +88,33 @@
 </main>
 
 <div id="toast-container" class="toast-container"></div>
+
+<!-- ═══ HABIT ADD / EDIT MODAL ═══ -->
+<div id="habit-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box habit-modal-box">
+        <h3 id="habit-modal-title" class="habit-modal-heading">New Habit</h3>
+
+        <label class="habit-modal-field">
+            <span class="habit-modal-field-label">Title</span>
+            <input id="habit-modal-input" class="habit-modal-input" type="text" maxlength="60" placeholder="e.g. Drink water" autocomplete="off">
+        </label>
+
+        <label class="habit-modal-toggle">
+            <input id="habit-modal-repeat" type="checkbox">
+            <span class="habit-modal-switch" aria-hidden="true"></span>
+            <span class="habit-modal-toggle-copy">
+                <span class="habit-modal-toggle-title">Repeat daily</span>
+                <span class="habit-modal-toggle-hint">Carries this habit to the next day automatically.</span>
+            </span>
+        </label>
+
+        <div class="habit-modal-actions">
+            <button id="habit-modal-cancel" class="habit-modal-btn habit-modal-btn-ghost" type="button">Cancel</button>
+            <button id="habit-modal-save"   class="habit-modal-btn habit-modal-btn-primary" type="button">Save</button>
+        </div>
+    </div>
+</div>
+
 <nav class="bottom-nav">
     <a href="habit.html" class="nav-item active">
         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">event_repeat</span>

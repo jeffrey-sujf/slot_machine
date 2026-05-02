@@ -139,6 +139,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const pastHabitsCount  = document.getElementById('past-habits-count');
     const toastContainer   = document.getElementById('toast-container');
 
+    // Wallet / physics modal refs (me.html)
+    const walletModal         = document.getElementById('wallet-modal');
+    const walletModalBalance  = document.getElementById('wallet-modal-balance');
+    const walletModalClose    = document.getElementById('wallet-modal-close');
+    const walletOpenTrigger   = document.getElementById('wallet-open-trigger');
+    const btnOpenWallet       = document.getElementById('btn-open-wallet');
+    const walletJiggleBtn     = document.getElementById('wallet-jiggle-btn');
+    const walletPhysicsCanvas = document.getElementById('wallet-physics-canvas');
+
     // ═══════════════════════════════════════════════
     // SPA ROUTING
     // ═══════════════════════════════════════════════
@@ -200,23 +209,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Strict per-level probability table (each row sums to 100).
+    // Lookup is exact — no global re-weighting, no eligibility juggling.
+    const LEVEL_ODDS = {
+        1: [ { type: 'T1',      pct: 40 },
+             { type: 'Miss',    pct: 60 } ],
+        2: [ { type: 'T1',      pct: 40 },
+             { type: 'T2',      pct: 30 },
+             { type: 'Miss',    pct: 30 } ],
+        3: [ { type: 'T1',      pct: 40 },
+             { type: 'T2',      pct: 30 },
+             { type: 'T3',      pct: 20 },
+             { type: 'Jackpot', pct:  1 },
+             { type: 'Miss',    pct:  9 } ]
+    };
+
+    function rollOutcome(level) {
+        const table = LEVEL_ODDS[level] || LEVEL_ODDS[1];
+        let roll = Math.random() * 100;          // 0 ≤ roll < 100
+        for (const row of table) {
+            if (roll < row.pct) return row.type;
+            roll -= row.pct;
+        }
+        return 'Miss'; // float-rounding safety net
+    }
+
     async function handleSpin() {
         if (isSpinning || !isLoaded) return;
         isSpinning = true;
-        const level = loadedLevel;
+        const level = loadedLevel || 1;
         isLoaded = false;
 
-        // Determine outcome
-        const eligible = ['Miss', 'T1'];
-        if (level >= 2) eligible.push('T2');
-        if (level >= 3) eligible.push('T3', 'Jackpot');
-        const totalWeight = eligible.reduce((s, t) => s + state.baseWeights[t], 0);
-        let rng = Math.random() * totalWeight;
-        let result = 'Miss';
-        for (const t of eligible) {
-            if (rng < state.baseWeights[t]) { result = t; break; }
-            rng -= state.baseWeights[t];
-        }
+        // Determine outcome via the strict per-level odds table
+        const result = rollOutcome(level);
 
         syncDestination(result);
         machineContainer.classList.add('spinning');
@@ -231,9 +256,11 @@ document.addEventListener('DOMContentLoaded', () => {
             machineContainer.classList.add('shake-it');
             setTimeout(() => machineContainer.classList.remove('shake-it'), 500);
             outcomeDisplay.textContent = 'MISS — TRY AGAIN';
+            showToast('Miss — try again');
         } else {
             createParticles(window.innerWidth / 2, window.innerHeight / 2, '--token-4', 30, true);
             outcomeDisplay.textContent = `${result} WIN!`;
+            showToast(`Result: ${state.rewards[result] || result}`);
             setTimeout(() => { outcomeDisplay.textContent = `REWARD: ${state.rewards[result]}`; }, 2000);
         }
 
@@ -280,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const checkbox = li.querySelector('input');
             checkbox.addEventListener('change', () => onHabitToggle(h, li, checkbox));
 
-            li.querySelector('.edit-btn').addEventListener('click', () => enterEditMode(li, h));
+            li.querySelector('.edit-btn').addEventListener('click', () => openHabitModal(h));
             li.querySelector('.delete-btn').addEventListener('click', () => deleteHabit(h.id));
 
             habitList.appendChild(li);
@@ -339,51 +366,80 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function enterEditMode(li, h) {
-        const titleSpan = li.querySelector('.habit-title');
-        const actionsDiv = li.querySelector('.habit-actions');
+    // ═══════════════════════════════════════════════
+    // HABIT ADD / EDIT MODAL
+    // One modal serves both flows:
+    //   openHabitModal(null)  → add a brand-new habit
+    //   openHabitModal(habit) → edit an existing habit's title + repeat flag
+    // Replaces the old in-place row editor and the auto-row-then-edit add hack.
+    // ═══════════════════════════════════════════════
+    const habitModal       = document.getElementById('habit-modal');
+    const habitModalTitle  = document.getElementById('habit-modal-title');
+    const habitModalInput  = document.getElementById('habit-modal-input');
+    const habitModalRepeat = document.getElementById('habit-modal-repeat');
+    const habitModalSave   = document.getElementById('habit-modal-save');
+    const habitModalCancel = document.getElementById('habit-modal-cancel');
+    let habitModalEditingId = null;   // null = create mode
 
-        const input = document.createElement('input');
-        input.className = 'habit-edit-input';
-        input.value = h.title;
-
-        const repeatControl = document.createElement('label');
-        repeatControl.className = 'habit-repeat-control';
-        repeatControl.innerHTML = `
-            <input type="checkbox" ${h.isRepeated ? 'checked' : ''}>
-            <span>Repeated habit</span>
-        `;
-
-        titleSpan.replaceWith(input);
-        input.after(repeatControl);
-        input.focus();
-        input.select();
-
-        actionsDiv.innerHTML = `
-            <button class="habit-action-btn save-btn" title="Save"><span class="material-symbols-outlined">check</span></button>
-            <button class="habit-action-btn cancel-btn" title="Cancel"><span class="material-symbols-outlined">close</span></button>
-        `;
-
-        const save = () => {
-            const newTitle = input.value.trim();
-            const repeatInput = repeatControl.querySelector('input');
-            h.isRepeated = repeatInput.checked;
-            if (newTitle && newTitle !== h.title) {
-                h.title = newTitle;
-                // Supabase hook: db.updateHabit(h.id, { title: newTitle })
-            }
-            saveState();
-            renderHabits();
-        };
-        const cancel = () => renderHabits();
-
-        actionsDiv.querySelector('.save-btn').addEventListener('click', save);
-        actionsDiv.querySelector('.cancel-btn').addEventListener('click', cancel);
-        input.addEventListener('keydown', e => {
-            if (e.key === 'Enter') save();
-            if (e.key === 'Escape') cancel();
+    function openHabitModal(habit) {
+        if (!habitModal) return;
+        habitModalEditingId = habit ? habit.id : null;
+        habitModalTitle.textContent = habit ? 'Edit Habit' : 'New Habit';
+        habitModalInput.value       = habit ? habit.title : '';
+        habitModalRepeat.checked    = !!(habit && habit.isRepeated);
+        habitModal.style.display    = 'flex';
+        // focus & select after the modal is paint-flipped to flex
+        requestAnimationFrame(() => {
+            habitModalInput.focus();
+            habitModalInput.select();
         });
     }
+
+    function closeHabitModal() {
+        if (!habitModal) return;
+        habitModal.style.display = 'none';
+        habitModalEditingId = null;
+    }
+
+    function commitHabitModal() {
+        const title = habitModalInput.value.trim();
+        if (!title) {
+            habitModalInput.focus();
+            return; // require a non-empty title
+        }
+        const isRepeated = habitModalRepeat.checked;
+
+        if (habitModalEditingId) {
+            const h = state.habits.find(x => x.id === habitModalEditingId);
+            if (h) {
+                h.title      = title;
+                h.isRepeated = isRepeated;
+            }
+        } else {
+            state.habits.push({
+                id: uid(),
+                title,
+                isCompleted: false,
+                earnedToken: null,
+                isRepeated,
+                completedDate: null,
+                canceledDate: null
+            });
+        }
+        saveState();
+        closeHabitModal();
+        renderAll();
+    }
+
+    if (habitModalSave)   habitModalSave.addEventListener('click', commitHabitModal);
+    if (habitModalCancel) habitModalCancel.addEventListener('click', closeHabitModal);
+    if (habitModal) habitModal.addEventListener('click', e => {
+        if (e.target === habitModal) closeHabitModal(); // click backdrop
+    });
+    if (habitModalInput) habitModalInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter')  commitHabitModal();
+        if (e.key === 'Escape') closeHabitModal();
+    });
 
     function deleteHabit(id) {
         state.habits = state.habits.filter(h => h.id !== id);
@@ -394,14 +450,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addHabit() {
-        const h = { id: uid(), title: 'New Habit', isCompleted: false, earnedToken: null };
-        state.habits.push(h);
-        saveState();
-        renderHabits();
-        // Enter edit mode immediately on the new row
-        const newLi = habitList.querySelector(`[data-id="${h.id}"]`);
-        if (newLi) enterEditMode(newLi, h);
-        // Supabase hook: db.addHabit(h)
+        // Open the empty modal — no placeholder row is inserted into state
+        // until the user actually saves a title.
+        openHabitModal(null);
+        // Supabase hook: db.addHabit(h) — fires inside commitHabitModal on save
     }
 
     // ═══════════════════════════════════════════════
@@ -617,6 +669,36 @@ document.addEventListener('DOMContentLoaded', () => {
         renderWallet();
         renderStats();
         renderSpinHistory();
+        updateWalletModal();
+    }
+
+    function renderSpinHistory() {
+        if (!spinHistoryEl) return;
+        if (!state.spinHistory.length) {
+            spinHistoryEl.innerHTML = '<span class="history-empty">No spins yet</span>';
+            return;
+        }
+        spinHistoryEl.innerHTML = state.spinHistory.map(entry => {
+            const cls = entry === 'Miss' ? 'miss' : (entry === 'Jackpot' ? 'jackpot' : 'win');
+            return `<span class="history-chip ${cls}">${entry}</span>`;
+        }).join('');
+    }
+
+    function updateWalletModal() {
+        if (!walletModalBalance) return;
+        const total = Object.values(state.wallet).reduce((sum, value) => sum + value, 0);
+        walletModalBalance.textContent = total.toLocaleString();
+    }
+
+    function showWalletModal() {
+        if (!walletModal) return;
+        walletModal.style.display = 'flex';
+        updateWalletModal();
+    }
+
+    function hideWalletModal() {
+        if (!walletModal) return;
+        walletModal.style.display = 'none';
     }
 
     // ═══════════════════════════════════════════════
@@ -817,6 +899,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (btnModalCancel) btnModalCancel.addEventListener('click', () => { coinModal.style.display = 'none'; });
+
+    if (walletOpenTrigger) walletOpenTrigger.addEventListener('click', showWalletModal);
+    if (btnOpenWallet) btnOpenWallet.addEventListener('click', showWalletModal);
+    if (walletModalClose) walletModalClose.addEventListener('click', hideWalletModal);
+    if (walletModal) walletModal.addEventListener('click', event => {
+        if (event.target === walletModal) hideWalletModal();
+    });
+    if (walletJiggleBtn) walletJiggleBtn.addEventListener('click', () => {
+        if (!walletPhysicsCanvas) return;
+        walletPhysicsCanvas.classList.add('wallet-jiggle');
+        setTimeout(() => walletPhysicsCanvas.classList.remove('wallet-jiggle'), 300);
+    });
 
     [1, 2, 3].forEach(l => {
         const btn = document.getElementById(`bet-opt-${l}`);

@@ -25,7 +25,7 @@
 <body>
 <main>
     <!-- Balance LCD -->
-    <section class="lcd-screen p-6 mt-8 shadow-2xl">
+    <section id="wallet-open-trigger" class="lcd-screen p-6 mt-8 shadow-2xl" role="button" tabindex="0" aria-label="Open wallet">
         <div class="flex flex-col gap-1">
             <span class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Available Balance</span>
             <div class="flex items-baseline gap-2">
@@ -43,7 +43,13 @@
 
     <!-- Assets Grid -->
     <section class="mt-8">
-        <h2 class="text-xs font-bold uppercase tracking-widest opacity-50 mb-4 px-2">Inventory</h2>
+        <div class="flex items-center justify-between px-2 mb-4">
+            <h2 class="text-xs font-bold uppercase tracking-widest opacity-50">Inventory</h2>
+            <button id="btn-open-wallet" class="wallet-open-btn">
+                <span class="material-symbols-outlined" style="font-size:14px">open_in_full</span>
+                Physics View
+            </button>
+        </div>
         <div id="wallet-container" class="grid grid-cols-3 gap-4">
             <!-- Dynamic items -->
         </div>
@@ -69,6 +75,27 @@
         </div>
     </section>
 </main>
+
+<!-- ═══ PHYSICS WALLET MODAL ═══ -->
+<div id="wallet-modal" class="wallet-modal-overlay" style="display:none;">
+    <div class="wallet-modal-box">
+        <div class="wallet-modal-header">
+            <span class="wallet-modal-title">My Wallet</span>
+            <button id="wallet-modal-close" class="wallet-modal-close" aria-label="Close wallet">✕</button>
+        </div>
+        <div class="wallet-modal-balance-row">
+            <span id="wallet-modal-balance" class="wallet-balance-number">0</span>
+            <span class="wallet-balance-label">TOKENS</span>
+        </div>
+        <canvas id="wallet-physics-canvas"></canvas>
+        <div class="wallet-modal-footer">
+            <span class="wallet-footer-hint">drag &amp; toss the tokens</span>
+            <button id="wallet-jiggle-btn" class="wallet-jiggle-btn">JIGGLE</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
 
 <nav class="bottom-nav">
     <a href="habit.html" class="nav-item">

@@ -368,11 +368,22 @@ main { width: 100%; max-width: 440px; padding: 20px; padding-bottom: 100px; }
 /* ── PIXEL CHECKBOX ──────────────────────────────── */
 .pixel-checkbox {
     width: 24px; height: 24px;
-    border: 2px solid var(--outline-color) !important;
-    border-radius: 4px; background-color: var(--bg-color);
+    border: 2px solid #c5c0b8 !important;
+    border-radius: 4px; background-color: #f5f3e7;
     cursor: pointer; flex-shrink: 0;
-    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.8), inset -1px -1px 0 rgba(0,0,0,0.1);
-    accent-color: var(--primary-container);
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.9), inset -1px -1px 0 rgba(0,0,0,0.08);
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    accent-color: #b3aca2;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+.pixel-checkbox:checked {
+    background-color: #b3aca2;
+    border-color: #8b8477 !important;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.4), inset -1px -1px 0 rgba(0,0,0,0.2);
+}
+.pixel-checkbox:focus-visible {
+    outline: 2px solid rgba(167, 58, 0, 0.3);
+    outline-offset: 2px;
 }
 
 /* ── HABIT LIST ──────────────────────────────────── */
@@ -386,7 +397,6 @@ main { width: 100%; max-width: 440px; padding: 20px; padding-bottom: 100px; }
 .habit-row.is-done { background: rgba(105,255,136,0.08); border-color: rgba(105,255,136,0.2); }
 .habit-title { flex: 1; font-size: 14px; font-weight: 700; color: #44403c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .habit-title.struck { text-decoration: line-through; opacity: 0.4; }
-.habit-edit-input { flex: 1; font-size: 14px; font-weight: 700; color: #1b1c15; border: none; border-bottom: 2px solid var(--primary-container); background: transparent; outline: none; padding: 2px 0; font-family: inherit; }
 .habit-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
 .habit-row:hover .habit-actions,
 .habit-row:focus-within .habit-actions { opacity: 1; }
@@ -397,20 +407,125 @@ main { width: 100%; max-width: 440px; padding: 20px; padding-bottom: 100px; }
 .habit-action-btn.save-btn:hover   { color: var(--tertiary); }
 .habit-action-btn.cancel-btn:hover { color: #78716c; }
 .habit-action-btn .material-symbols-outlined { font-size: 16px; }
-#btn-add-habit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; background: var(--primary); color: #fff; border-radius: 999px; border: none; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; transition: transform 0.2s, background 0.2s; }
-#btn-add-habit:hover { transform: translateY(-1px); background: #8f2a00; }
+#btn-add-habit {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 6px;
+    padding: 12px 18px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 999px;
+    border: none;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 8px rgba(167,58,0,0.15);
+}
+#btn-add-habit:hover {
+    transform: translateY(-2px);
+    background: #8f2a00;
+    box-shadow: 0 4px 12px rgba(167,58,0,0.25);
+}
+#btn-add-habit:active {
+    transform: translateY(-1px);
+}
 .habit-repeat-chip {
     display: inline-flex; align-items: center; justify-content: center;
-    margin-left: 10px; padding: 2px 8px; border-radius: 999px;
-    background: rgba(105,255,136,0.16); color: var(--tertiary-fixed);
-    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    margin-left: 8px; padding: 4px 10px; border-radius: 999px;
+    background: rgba(105,255,136,0.14); color: #1d7d46;
+    font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
 }
-.habit-repeat-control {
-    display: flex; align-items: center; gap: 8px; margin-top: 8px;
-    font-size: 12px; color: #44403c;
+
+/* ── HABIT ADD / EDIT MODAL ──────────────────────── */
+.habit-modal-box {
+    max-width: 380px;
+    display: flex; flex-direction: column; gap: 24px;
+    background: #faf8f3;
+    border: 1.5px solid var(--border-color);
+    border-radius: 16px;
+    padding: 32px;
 }
-.habit-repeat-control input {
-    width: 16px; height: 16px; accent-color: var(--primary-container);
+.habit-modal-heading {
+    margin: 0; font-size: 16px; font-weight: 800; color: var(--primary);
+    text-transform: uppercase; letter-spacing: 0.2em; text-align: center;
+}
+.habit-modal-field { display: flex; flex-direction: column; gap: 8px; }
+.habit-modal-field-label {
+    font-size: 11px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.2em; color: #6b6360;
+}
+.habit-modal-input {
+    width: 100%; padding: 14px 16px;
+    font-size: 15px; font-weight: 600; color: #1b1c15;
+    background: #fff;
+    border: 1.5px solid #dbd8d0; border-radius: 10px;
+    outline: none; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    font-family: inherit;
+}
+.habit-modal-input:focus {
+    border-color: var(--primary-container);
+    background: #fffbf7;
+    box-shadow: 0 0 0 4px rgba(255,92,0,0.1);
+}
+
+/* Toggle switch — replaces the inline .habit-repeat-control checkbox */
+.habit-modal-toggle {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 16px; background: rgba(255,255,255,0.8);
+    border: 1.5px solid #dbd8d0; border-radius: 12px;
+    cursor: pointer; user-select: none;
+    transition: background 0.15s, border-color 0.15s;
+}
+.habit-modal-toggle:hover {
+    background: rgba(255,255,255,0.95);
+    border-color: rgba(255,92,0,0.15);
+}
+.habit-modal-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.habit-modal-switch {
+    position: relative; flex-shrink: 0; margin-top: 3px;
+    width: 40px; height: 22px;
+    background: #d1cdc7; border-radius: 999px;
+    transition: background 0.3s;
+}
+.habit-modal-switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transition: transform 0.3s;
+}
+.habit-modal-toggle input:checked + .habit-modal-switch { background: var(--primary-container); }
+.habit-modal-toggle input:checked + .habit-modal-switch::after { transform: translateX(18px); }
+.habit-modal-toggle input:focus-visible + .habit-modal-switch {
+    box-shadow: 0 0 0 3px rgba(255,92,0,0.25);
+}
+.habit-modal-toggle-copy { display: flex; flex-direction: column; gap: 4px; }
+.habit-modal-toggle-title {
+    font-size: 14px; font-weight: 700; color: #1b1c15;
+}
+.habit-modal-toggle-hint {
+    font-size: 12px; color: #8b8477; line-height: 1.4;
+}
+
+.habit-modal-actions { display: flex; gap: 12px; }
+.habit-modal-btn {
+    flex: 1; padding: 14px 18px; border-radius: 10px;
+    font-size: 12px; font-weight: 800; letter-spacing: 0.12em;
+    text-transform: uppercase; cursor: pointer;
+    border: 1.5px solid transparent; transition: 0.2s all;
+    font-family: inherit;
+}
+.habit-modal-btn-ghost {
+    background: rgba(0,0,0,0.04); border-color: #dbd8d0; color: #8b8477;
+}
+.habit-modal-btn-ghost:hover { background: rgba(0,0,0,0.08); color: #6b6360; border-color: #c5c0b8; }
+.habit-modal-btn-primary {
+    background: var(--primary); border-color: var(--primary); color: #fff;
+}
+.habit-modal-btn-primary:hover { background: #8f2a00; border-color: #8f2a00; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(167,58,0,0.2); }
+.habit-modal-btn-primary:disabled {
+    opacity: 0.4; cursor: not-allowed; background: #c5c0b8; border-color: #c5c0b8; transform: none;
 }
 .reward-row,
 .goal-row {
