@@ -108,6 +108,100 @@ document.addEventListener('DOMContentLoaded', () => {
     let isSpinning = false;
     let isLoaded   = false;
     let loadedLevel = null;
+    let lastDeletedHabit = null;
+    let undoDeleteTimer = null;
+
+    function confirmAction(primaryMessage, secondaryMessage) {
+        if (!window.confirm(primaryMessage)) return false;
+        return window.confirm(secondaryMessage);
+    }
+
+    function undoLastDelete() {
+        if (!lastDeletedHabit) return;
+        const { habit, index } = lastDeletedHabit;
+        state.habits.splice(Math.min(index, state.habits.length), 0, habit);
+        lastDeletedHabit = null;
+        if (undoDeleteTimer) {
+            clearTimeout(undoDeleteTimer);
+            undoDeleteTimer = null;
+        }
+        saveState();
+        renderAll();
+        showToast(`Restored habit: ${habit.title}`);
+    }
+
+    function bindHabitSwipeGesture(row, content, habit, editButton, deleteButton) {
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+        let activePointerId = null;
+
+        function resetSwipe() {
+            content.style.transform = '';
+            row.dataset.swipeState = '';
+            currentX = 0;
+            isDragging = false;
+        }
+
+        function handleEditAction() {
+            if (!confirmAction('Swipe right to edit this habit. Continue?', 'Open the editor for this habit?')) {
+                resetSwipe();
+                return;
+            }
+            openHabitModal(habit);
+            resetSwipe();
+        }
+
+        function handleDeleteAction() {
+            if (!confirmAction('Swipe left to delete this habit. Continue?', 'Confirm permanent deletion?')) {
+                resetSwipe();
+                return;
+            }
+            deleteHabit(habit.id, true);
+        }
+
+        function endSwipe() {
+            if (!isDragging) return;
+            isDragging = false;
+            if (Math.abs(currentX) > 100) {
+                if (currentX > 0) handleEditAction();
+                else handleDeleteAction();
+            } else {
+                resetSwipe();
+            }
+        }
+
+        content.addEventListener('pointerdown', event => {
+            if (!event.isPrimary || event.button !== 0) return;
+            if (event.target.closest('button, input')) return;
+            isDragging = true;
+            startX = event.clientX;
+            activePointerId = event.pointerId;
+            content.setPointerCapture(activePointerId);
+        });
+
+        content.addEventListener('pointermove', event => {
+            if (!isDragging || event.pointerId !== activePointerId) return;
+            const deltaX = event.clientX - startX;
+            if (Math.abs(deltaX) < 8 && currentX === 0) return;
+            currentX = Math.max(-140, Math.min(140, deltaX));
+            content.style.transform = `translateX(${currentX}px)`;
+            row.dataset.swipeState = currentX > 20 ? 'edit' : currentX < -20 ? 'delete' : '';
+            event.preventDefault();
+        });
+
+        content.addEventListener('pointerup', event => {
+            if (event.pointerId !== activePointerId) return;
+            endSwipe();
+        });
+        content.addEventListener('pointercancel', endSwipe);
+
+        if (editButton) editButton.addEventListener('click', handleEditAction);
+        if (deleteButton) deleteButton.addEventListener('click', handleDeleteAction);
+        row.addEventListener('transitionend', () => {
+            if (!row.dataset.swipeState) content.style.transform = '';
+        });
+    }
 
     // ═══════════════════════════════════════════════
     // DOM REFS
@@ -258,10 +352,12 @@ document.addEventListener('DOMContentLoaded', () => {
             outcomeDisplay.textContent = 'MISS — TRY AGAIN';
             showToast('Miss — try again');
         } else {
-            createParticles(window.innerWidth / 2, window.innerHeight / 2, '--token-4', 30, true);
+            // Enhanced win celebration with multiple effects
+            createParticles(window.innerWidth / 2, window.innerHeight / 2, '--token-4', 40, true);
+            triggerWinBurst(window.innerWidth / 2, window.innerHeight / 2, token);
             outcomeDisplay.textContent = `${result} WIN!`;
             showToast(`Result: ${state.rewards[result] || result}`);
-            setTimeout(() => { outcomeDisplay.textContent = `REWARD: ${state.rewards[result]}`; }, 2000);
+            setTimeout(() => { outcomeDisplay.textContent = `REWARD: ${state.rewards[result]}`; }, 2500);
         }
 
         // Record in history (keep last 5)
@@ -289,26 +385,48 @@ document.addEventListener('DOMContentLoaded', () => {
             li.dataset.id = h.id;
 
             li.innerHTML = `
-                <input class="pixel-checkbox" type="checkbox" ${h.isCompleted ? 'checked' : ''} aria-label="Complete ${h.title}">
-                <span class="habit-title ${h.isCompleted ? 'struck' : ''}">
-                    ${escHtml(h.title)}
-                    ${h.isRepeated ? '<span class="habit-repeat-chip">REPEAT</span>' : ''}
-                </span>
-                <div class="habit-actions">
-                    <button class="habit-action-btn edit-btn" title="Edit" aria-label="Edit habit">
-                        <span class="material-symbols-outlined">edit</span>
-                    </button>
-                    <button class="habit-action-btn delete-btn" title="Delete" aria-label="Delete habit">
-                        <span class="material-symbols-outlined">delete</span>
-                    </button>
+                <div class="habit-swipe-bg">
+                    <button class="swipe-action-btn swipe-edit-btn" type="button">Edit</button>
+                    <button class="swipe-action-btn swipe-delete-btn" type="button">Delete</button>
+                </div>
+                <div class="habit-row-content">
+                    <input class="pixel-checkbox" type="checkbox" ${h.isCompleted ? 'checked' : ''} aria-label="Complete ${h.title}">
+                    <span class="habit-title ${h.isCompleted ? 'struck' : ''}">
+                        ${escHtml(h.title)}
+                        ${h.isRepeated ? '<span class="habit-repeat-chip">REPEAT</span>' : ''}
+                    </span>
+                    <div class="habit-actions">
+                        <button class="habit-action-btn edit-btn" title="Edit" aria-label="Edit habit">
+                            <span class="material-symbols-outlined">edit</span>
+                        </button>
+                        <button class="habit-action-btn delete-btn" title="Delete" aria-label="Delete habit">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    </div>
                 </div>
             `;
 
             const checkbox = li.querySelector('input');
             checkbox.addEventListener('change', () => onHabitToggle(h, li, checkbox));
 
-            li.querySelector('.edit-btn').addEventListener('click', () => openHabitModal(h));
-            li.querySelector('.delete-btn').addEventListener('click', () => deleteHabit(h.id));
+            const editButton = li.querySelector('.edit-btn');
+            const deleteButton = li.querySelector('.delete-btn');
+            const swipeEditButton = li.querySelector('.swipe-edit-btn');
+            const swipeDeleteButton = li.querySelector('.swipe-delete-btn');
+            const rowContent = li.querySelector('.habit-row-content');
+
+            if (editButton) editButton.addEventListener('click', () => {
+                if (confirmAction('Tap Edit to modify this habit. Continue?', 'Open the editor for this habit?')) {
+                    openHabitModal(h);
+                }
+            });
+            if (deleteButton) deleteButton.addEventListener('click', () => {
+                if (confirmAction('Tap Delete to remove this habit. Continue?', 'Confirm permanent deletion?')) {
+                    deleteHabit(h.id);
+                }
+            });
+
+            bindHabitSwipeGesture(li, rowContent, h, swipeEditButton, swipeDeleteButton);
 
             habitList.appendChild(li);
         });
@@ -339,14 +457,14 @@ document.addEventListener('DOMContentLoaded', () => {
             state.lifetimeTokens++;
             saveState();
 
-            // Visual: row flash + coin rain + fly-to-badge
-            li.style.animation = 'habitFlash 0.6s ease-out forwards';
-            triggerCoinRain(token, 18);
-            flyTokenToWallet(li.getBoundingClientRect(), token);
+            // Enhanced visual sequence: flash → coin rain → fly to wallet
+            li.style.animation = 'habitFlash 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+            setTimeout(() => triggerCoinRain(token, 24), 200);
+            setTimeout(() => flyTokenToWallet(li.getBoundingClientRect(), token), 400);
             showToast(`+1 ${token.name} token earned!`, token);
 
-            // Defer render until animation lands (0.65 s)
-            setTimeout(() => renderAll(), 680);
+            // Defer render until all animations complete (1.2s total)
+            setTimeout(() => renderAll(), 1200);
 
             // Supabase hook: db.completeHabit(h.id, token.name)
 
@@ -442,11 +560,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function deleteHabit(id) {
-        state.habits = state.habits.filter(h => h.id !== id);
+        const index = state.habits.findIndex(h => h.id === id);
+        if (index === -1) return;
+
+        const [deleted] = state.habits.splice(index, 1);
+        lastDeletedHabit = { habit: deleted, index };
+
         saveState();
-        renderHabits();
-        updateProgressBar();
-        // Supabase hook: db.deleteHabit(id)
+        renderAll();
+        showUndoToast(`Deleted habit: ${deleted.title}`, 'Undo', undoLastDelete);
+
+        if (undoDeleteTimer) clearTimeout(undoDeleteTimer);
+        undoDeleteTimer = setTimeout(() => {
+            lastDeletedHabit = null;
+            undoDeleteTimer = null;
+        }, 6500);
     }
 
     function addHabit() {
@@ -707,31 +835,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // no main-thread blocking. Each coin auto-removes
     // on animationend.
     // ═══════════════════════════════════════════════
-    function triggerCoinRain(token, count = 18) {
+    function triggerCoinRain(token, count = 24) {
         const easings = [
-            'cubic-bezier(0.23, 1, 0.32, 1)',
             'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-            'linear'
+            'cubic-bezier(0.23, 1, 0.32, 1)',
+            'cubic-bezier(0.68, -0.55, 0.265, 1.55)'
         ];
 
         for (let i = 0; i < count; i++) {
             const coin = document.createElement('div');
             coin.className = 'coin-rain-coin';
 
-            const leftPct  = 5 + Math.random() * 90;
-            const duration = 1.2 + Math.random() * 1.4;
-            const delay    = Math.random() * 0.6;
-            const spinDeg  = (Math.random() > 0.5 ? 1 : -1) * (180 + Math.random() * 540);
+            const leftPct  = 10 + Math.random() * 80;
+            const duration = 1.8 + Math.random() * 1.2;
+            const delay    = i * 0.08 + Math.random() * 0.3; // Staggered start
+            const spinDeg  = (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 720);
             const easing   = easings[Math.floor(Math.random() * easings.length)];
 
             coin.style.cssText = `
                 left: ${leftPct}vw;
                 background: var(${token.var});
-                color: rgba(0,0,0,0.65);
+                color: rgba(0,0,0,0.7);
                 --fall-dur: ${duration}s;
                 --fall-delay: ${delay}s;
                 --fall-ease: ${easing};
                 --spin-deg: ${spinDeg}deg;
+                --scale-start: ${1 + Math.random() * 0.5};
             `;
             coin.innerHTML = `<span class="material-symbols-outlined">${token.icon}</span>`;
 
@@ -758,20 +887,24 @@ document.addEventListener('DOMContentLoaded', () => {
             left: ${startX}px;
             top: ${startY}px;
             background: var(${token.var});
-            color: rgba(0,0,0,0.7);
+            color: rgba(0,0,0,0.8);
             --tx: ${endX - startX}px;
             --ty: ${endY - startY}px;
-            --tx-mid: ${(endX - startX) * 0.25}px;
-            --fly-duration: 0.65s;
+            --tx-mid: ${(endX - startX) * 0.3}px;
+            --ty-mid: ${(endY - startY) * 0.2 - 40}px;
+            --fly-duration: 1.0s;
+            --scale-peak: 1.8;
         `;
         coin.innerHTML = `<span class="material-symbols-outlined">${token.icon}</span>`;
         document.body.appendChild(coin);
 
         coin.addEventListener('animationend', () => {
             coin.remove();
+            // Enhanced badge bump with glow effect
             badge.classList.remove('badge-bump');
-            void badge.offsetWidth; // force reflow to replay
+            void badge.offsetWidth; // force reflow
             badge.classList.add('badge-bump');
+            badge.style.animation = 'badgeGlow 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
         }, { once: true });
     }
 
@@ -790,12 +923,36 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.className = 'toast-item';
         toast.innerHTML = token
             ? `<span class="toast-icon material-symbols-outlined">${token.icon}</span>${message}`
-            : message;
+            : `<div class="toast-copy">${message}</div>`;
 
         container.appendChild(toast);
         requestAnimationFrame(() => toast.classList.add('visible'));
 
         setTimeout(() => toast.classList.remove('visible'), 3200);
+        toast.addEventListener('transitionend', () => {
+            if (!toast.classList.contains('visible')) toast.remove();
+        }, { once: true });
+    }
+
+    function showUndoToast(message, buttonLabel, undoCallback) {
+        const container = getToastContainer();
+        const toast = document.createElement('div');
+        toast.className = 'toast-item';
+        toast.innerHTML = `
+            <div class="toast-copy">${message}</div>
+            <button type="button" class="toast-action-btn">${buttonLabel}</button>
+        `;
+
+        const actionButton = toast.querySelector('.toast-action-btn');
+        actionButton.addEventListener('click', () => {
+            undoCallback();
+            toast.classList.remove('visible');
+        });
+
+        container.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('visible'));
+
+        setTimeout(() => toast.classList.remove('visible'), 6000);
         toast.addEventListener('transitionend', () => {
             if (!toast.classList.contains('visible')) toast.remove();
         }, { once: true });
@@ -844,9 +1001,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (isWin) {
                 p.style.left = Math.random() * 100 + 'vw';
-                p.style.setProperty('--d', (Math.random() * 2 + 2) + 's');
+                p.style.setProperty('--d', (Math.random() * 3 + 3) + 's');
+                p.style.setProperty('--delay', (Math.random() * 0.5) + 's');
+                p.style.setProperty('--size', (8 + Math.random() * 12) + 'px');
                 document.body.appendChild(p);
-                setTimeout(() => p.remove(), 4000);
+                setTimeout(() => p.remove(), 6000);
             } else {
                 const angle = Math.random() * Math.PI * 2;
                 const dist  = Math.random() * 60 + 20;
@@ -858,6 +1017,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.body.appendChild(p);
                 p.addEventListener('animationend', () => p.remove(), { once: true });
             }
+        }
+    }
+
+    function triggerWinBurst(x, y, token) {
+        // Create a burst of larger coins that radiate outward
+        for (let i = 0; i < 12; i++) {
+            const coin = document.createElement('div');
+            coin.className = 'win-burst-coin';
+
+            const angle = (i / 12) * Math.PI * 2;
+            const distance = 150 + Math.random() * 100;
+            const duration = 1.5 + Math.random() * 0.8;
+            const delay = Math.random() * 0.3;
+
+            coin.style.cssText = `
+                left: ${x}px;
+                top: ${y}px;
+                background: var(--token-4);
+                color: rgba(0,0,0,0.8);
+                --tx: ${Math.cos(angle) * distance}px;
+                --ty: ${Math.sin(angle) * distance}px;
+                --burst-dur: ${duration}s;
+                --burst-delay: ${delay}s;
+                --rotation: ${Math.random() * 720}deg;
+            `;
+            coin.innerHTML = `<span class="material-symbols-outlined">stars</span>`;
+            document.body.appendChild(coin);
+            coin.addEventListener('animationend', () => coin.remove(), { once: true });
         }
     }
 
