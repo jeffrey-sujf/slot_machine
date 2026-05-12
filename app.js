@@ -535,8 +535,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="reward-edit-row">
                 <input class="reward-edit-input" type="text" value="${escHtml(current)}" placeholder="Enter reward text">
                 <div class="reward-edit-actions">
-                    <button class="reward-edit-save">Save</button>
-                    <button class="reward-edit-cancel">Cancel</button>
+                    <button type="button" class="reward-edit-save">Save</button>
+                    <button type="button" class="reward-edit-cancel">Cancel</button>
                 </div>
             </div>
         `;
@@ -567,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label class="goal-label" for="goal-target-input">Target tokens</label>
                 <div class="goal-target-input-wrap">
                     <input id="goal-target-input" class="goal-target-input" type="number" min="3" step="1" value="${target}">
-                    <button id="goal-target-save" class="goal-target-save">Save</button>
+                    <button id="goal-target-save" type="button" class="goal-target-save">Save</button>
                 </div>
             </div>
             <div class="goal-row goal-progress-row">
@@ -616,8 +616,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <input class="reward-edit-input" type="text" value="${escHtml(current)}" placeholder="Enter award text">
             </div>
             <div class="goal-award-actions">
-                <button class="reward-edit-save">Save</button>
-                <button class="reward-edit-cancel">Cancel</button>
+                <button type="button" class="reward-edit-save">Save</button>
+                <button type="button" class="reward-edit-cancel">Cancel</button>
             </div>
         `;
 

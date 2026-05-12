@@ -72,14 +72,14 @@
                     <h2 class="font-bold text-xl">Routine</h2>
                     <span id="remaining-count" class="text-white bg-primary px-2 py-0.5 rounded-full text-[10px]">0 REMAINING</span>
                 </div>
-                <button id="btn-add-habit" class="px-3 py-2 bg-primary text-white rounded-full text-xs font-bold uppercase tracking-[0.2em] hover:bg-[#8a2a00] transition">+ Add</button>
+                <button id="btn-add-habit" type="button" class="px-3 py-2 bg-primary text-white rounded-full text-xs font-bold uppercase tracking-[0.2em] hover:bg-[#8a2a00] transition">+ Add</button>
             </div>
             <ul id="habit-list" class="space-y-3"></ul>
             <details id="past-habits-folder" class="past-habits-panel mt-4">
                 <summary class="past-habits-summary">Past Habits <span id="past-habits-count" class="text-[10px] opacity-70 ml-2"></span></summary>
                 <div id="past-habits-container" class="space-y-2 mt-3"></div>
             </details>
-            <button id="btn-reset-day" class="mt-4 w-full py-3 bg-white border-2 border-dashed border-outline-variant rounded-lg text-primary font-bold text-xs uppercase tracking-widest hover:bg-orange-50 transition-all active:scale-95">
+            <button id="btn-reset-day" type="button" class="mt-4 w-full py-3 bg-white border-2 border-dashed border-outline-variant rounded-lg text-primary font-bold text-xs uppercase tracking-widest hover:bg-orange-50 transition-all active:scale-95">
                 <span class="material-symbols-outlined text-sm align-middle">refresh</span>
                 Reset Day
             </button>
@@ -109,8 +109,8 @@
         </label>
 
         <div class="habit-modal-actions">
-            <button id="habit-modal-cancel" class="habit-modal-btn habit-modal-btn-ghost" type="button">Cancel</button>
-            <button id="habit-modal-save"   class="habit-modal-btn habit-modal-btn-primary" type="button">Save</button>
+            <button id="habit-modal-cancel" type="button" class="habit-modal-btn habit-modal-btn-ghost">Cancel</button>
+            <button id="habit-modal-save" type="button" class="habit-modal-btn habit-modal-btn-primary">Save</button>
         </div>
     </div>
 </div>
