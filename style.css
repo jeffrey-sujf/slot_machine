@@ -474,10 +474,13 @@ main { width: 100%; max-width: 440px; padding: 20px; padding-bottom: 100px; }
     padding: 10px 12px;
     transition: transform 0.18s ease-out;
     touch-action: pan-y;
+    user-select: none;
+    cursor: grab;
 }
+.habit-row-content:active { cursor: grabbing; }
 .habit-row[data-swipe-state="edit"] .swipe-edit-btn,
 .habit-row[data-swipe-state="delete"] .swipe-delete-btn {
-    transform: scale(1.05);
+    transform: scale(1.08);
     opacity: 1;
 }
 .habit-row:hover .habit-actions,

@@ -137,10 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let activePointerId = null;
 
         function resetSwipe() {
+            content.style.transition = 'transform 0.18s ease-out';
             content.style.transform = '';
             row.dataset.swipeState = '';
             currentX = 0;
             isDragging = false;
+            activePointerId = null;
         }
 
         function handleEditAction() {
@@ -157,10 +159,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 resetSwipe();
                 return;
             }
-            deleteHabit(habit.id, true);
+            deleteHabit(habit.id);
         }
 
-        function endSwipe() {
+        function finishSwipe() {
             if (!isDragging) return;
             isDragging = false;
             if (Math.abs(currentX) > 100) {
@@ -171,30 +173,61 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        function startSwipe(clientX) {
+            isDragging = true;
+            startX = clientX;
+            currentX = 0;
+            content.style.transition = 'none';
+            row.dataset.swipeState = '';
+        }
+
+        function moveSwipe(clientX) {
+            if (!isDragging) return;
+            const deltaX = clientX - startX;
+            if (Math.abs(deltaX) < 8 && currentX === 0) return;
+            currentX = Math.max(-140, Math.min(140, deltaX));
+            content.style.transform = `translateX(${currentX}px)`;
+            row.dataset.swipeState = currentX > 20 ? 'edit' : currentX < -20 ? 'delete' : '';
+        }
+
         content.addEventListener('pointerdown', event => {
             if (!event.isPrimary || event.button !== 0) return;
             if (event.target.closest('button, input')) return;
-            isDragging = true;
-            startX = event.clientX;
             activePointerId = event.pointerId;
+            startSwipe(event.clientX);
             content.setPointerCapture(activePointerId);
         });
 
         content.addEventListener('pointermove', event => {
             if (!isDragging || event.pointerId !== activePointerId) return;
-            const deltaX = event.clientX - startX;
-            if (Math.abs(deltaX) < 8 && currentX === 0) return;
-            currentX = Math.max(-140, Math.min(140, deltaX));
-            content.style.transform = `translateX(${currentX}px)`;
-            row.dataset.swipeState = currentX > 20 ? 'edit' : currentX < -20 ? 'delete' : '';
+            moveSwipe(event.clientX);
             event.preventDefault();
         });
 
         content.addEventListener('pointerup', event => {
             if (event.pointerId !== activePointerId) return;
-            endSwipe();
+            finishSwipe();
         });
-        content.addEventListener('pointercancel', endSwipe);
+        content.addEventListener('pointercancel', finishSwipe);
+        content.addEventListener('pointerleave', finishSwipe);
+
+        if (!window.PointerEvent) {
+            content.addEventListener('touchstart', event => {
+                if (event.target.closest('button, input')) return;
+                const touch = event.changedTouches[0];
+                if (!touch) return;
+                startSwipe(touch.clientX);
+            });
+            content.addEventListener('touchmove', event => {
+                if (!isDragging) return;
+                const touch = event.changedTouches[0];
+                if (!touch) return;
+                moveSwipe(touch.clientX);
+                event.preventDefault();
+            }, { passive: false });
+            content.addEventListener('touchend', finishSwipe);
+            content.addEventListener('touchcancel', finishSwipe);
+        }
 
         if (editButton) editButton.addEventListener('click', handleEditAction);
         if (deleteButton) deleteButton.addEventListener('click', handleDeleteAction);
@@ -445,12 +478,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // ═══════════════════════════════════════════════
     // HABIT ACTIONS
     // ═══════════════════════════════════════════════
+    function pickNewHabitToken(excludeName) {
+        const available = state.tokenColors.filter(token => token.name !== excludeName);
+        if (!available.length) return state.tokenColors[0];
+        return available[Math.floor(Math.random() * available.length)];
+    }
+
     function onHabitToggle(h, li, checkbox) {
         const nowChecked = checkbox.checked;
 
         if (nowChecked && !h.isCompleted) {
             // Completing a habit → earn token
-            const token = state.tokenColors[Math.floor(Math.random() * 6)];
+            const token = pickNewHabitToken(h.earnedToken);
             h.isCompleted  = true;
             h.earnedToken  = token.name;
             state.wallet[token.name]++;
